@@ -1,6 +1,7 @@
 open Ojson
+open Base
 
-let pp_token fmt t = Format.fprintf fmt "%s" (Token.show t)
+let pp_token fmt t = Stdlib.Format.fprintf fmt "%s" (Token.show t)
 let equal_token = Token.equal
 let testable_token = Alcotest.testable pp_token equal_token
 
@@ -35,6 +36,16 @@ let test_token input expected () =
   | Some token -> Alcotest.(check testable_token) "test token" expected token
   | None -> Alcotest.fail "no token"
 
+let test_fail_number number () =
+  let get_token () =
+    let lexer = Lexer.init number in
+    let _ = Lexer.next_token lexer in
+    ()
+  in
+
+  Alcotest.check_raises "test fail number" (Lexer.InvalidNumber number)
+    get_token
+
 let () =
   let open Alcotest in
   run "Lexer"
@@ -55,5 +66,14 @@ let () =
             (test_token "-123.45" (Number (-123.45)));
           test_case "negative float zero" `Quick
             (test_token "-0.0" (Number 0.0));
+          (* fail cases *)
+          test_case "fail float" `Quick (test_fail_number "10.1.2");
+          test_case "fail negative float" `Quick (test_fail_number "-10.1.2");
+          test_case "fail invalid minus signs" `Quick (test_fail_number "-10-");
+          test_case "fail invalid minus signs 2" `Quick
+            (test_fail_number "-10-123");
+          test_case "fail invalid minus sings 3" `Quick
+            (test_fail_number "10-123");
+          test_case "fail invalid minus sings 4" `Quick (test_fail_number "-");
         ] );
     ]

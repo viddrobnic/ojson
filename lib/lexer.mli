@@ -1,5 +1,8 @@
 type t
 
+exception InvalidNumber of string
+(** Raised when parsing an invalid number *)
+
 val init : string -> t
 (** Create a new lexer from an input *)
 

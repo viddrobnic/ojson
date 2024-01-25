@@ -2,6 +2,8 @@ open Base
 
 type t = { input : string; position : int; ch : char option }
 
+exception InvalidNumber of string
+
 let init input =
   if String.is_empty input then { input; position = 0; ch = None }
   else { input; position = 0; ch = Some input.[0] }
@@ -42,8 +44,13 @@ let is_number ch = Char.is_digit ch || Char.(ch = '.') || Char.(ch = '-')
 
 let read_number lexer =
   let lexer, str = read_while lexer is_number in
-  if String.contains str '.' then (lexer, Token.Number (Float.of_string str))
-  else (lexer, Token.Int (Int.of_string str))
+  let token =
+    try
+      if String.contains str '.' then Token.Number (Float.of_string str)
+      else Token.Int (Int.of_string str)
+    with _ -> raise (InvalidNumber str)
+  in
+  (lexer, token)
 
 let next_token lexer =
   let open Token in
