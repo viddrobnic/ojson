@@ -3,6 +3,8 @@ open Base
 type t = { input : string; position : int; ch : char option }
 
 exception InvalidNumber of string
+exception InvalidIdentifier of string
+exception InvalidChar of char
 
 let init input =
   if String.is_empty input then { input; position = 0; ch = None }
@@ -52,6 +54,18 @@ let read_number lexer =
   in
   (lexer, token)
 
+let read_constant lexer =
+  let lexer, str = read_while lexer Char.is_lowercase in
+  let open Token in
+  let token =
+    match str with
+    | "true" -> Bool true
+    | "false" -> Bool false
+    | "null" -> Null
+    | _ -> raise (InvalidIdentifier str)
+  in
+  (lexer, token)
+
 let next_token lexer =
   let open Token in
   let lexer = skip_whitespace lexer in
@@ -68,6 +82,7 @@ let next_token lexer =
         | ',' -> (advance lexer, Comma)
         | '"' -> read_string lexer
         | ch when is_number ch -> read_number lexer
-        | ch -> Fmt.failwith "unknown char: %c" ch
+        | ch when Char.is_lowercase ch -> read_constant lexer
+        | ch -> raise (InvalidChar ch)
       in
       (lexer, Some token)

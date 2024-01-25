@@ -7,7 +7,7 @@ let testable_token = Alcotest.testable pp_token equal_token
 
 let test_lexer () =
   let open Token in
-  let input = "[{:,\"test_string\"  \t \n 1 1.2  }] " in
+  let input = "[{:,\"test_string\"  \t \n 1 1.2 true false null  }] " in
   let lexer = Lexer.init input in
   let rec collect lexer acc =
     let lexer, tk = Lexer.next_token lexer in
@@ -24,6 +24,9 @@ let test_lexer () =
       String "test_string";
       Int 1;
       Number 1.2;
+      Bool true;
+      Bool false;
+      Null;
       RightSwirly;
       RightBox;
     ]
@@ -36,15 +39,22 @@ let test_token input expected () =
   | Some token -> Alcotest.(check testable_token) "test token" expected token
   | None -> Alcotest.fail "no token"
 
-let test_fail_number number () =
-  let get_token () =
-    let lexer = Lexer.init number in
-    let _ = Lexer.next_token lexer in
-    ()
-  in
+let get_token input () =
+  let lexer = Lexer.init input in
+  let _ = Lexer.next_token lexer in
+  ()
 
+let test_fail_number number () =
   Alcotest.check_raises "test fail number" (Lexer.InvalidNumber number)
-    get_token
+    (get_token number)
+
+let test_fail_identifier identifier () =
+  Alcotest.check_raises "test fail identifier"
+    (Lexer.InvalidIdentifier identifier) (get_token identifier)
+
+let test_fail_invalid_char input ch () =
+  Alcotest.check_raises "test fail invalid char" (Lexer.InvalidChar ch)
+    (get_token input)
 
 let () =
   let open Alcotest in
@@ -75,5 +85,14 @@ let () =
           test_case "fail invalid minus sings 3" `Quick
             (test_fail_number "10-123");
           test_case "fail invalid minus sings 4" `Quick (test_fail_number "-");
+        ] );
+      ( "identifier errors",
+        [ test_case "fail identifier" `Quick (test_fail_identifier "test") ] );
+      ( "invalid char",
+        [
+          test_case "fail invalid letter" `Quick
+            (test_fail_invalid_char "A" 'A');
+          test_case "fail invalid special char" `Quick
+            (test_fail_invalid_char "!asdf" '!');
         ] );
     ]
